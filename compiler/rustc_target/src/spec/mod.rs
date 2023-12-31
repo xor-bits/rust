@@ -1595,6 +1595,8 @@ supported_targets! {
     ("riscv64gc-unknown-hermit", riscv64gc_unknown_hermit),
     ("x86_64-unknown-hermit", x86_64_unknown_hermit),
 
+    ("x86_64-unknown-hyperion", x86_64_unknown_hyperion),
+
     ("x86_64-unikraft-linux-musl", x86_64_unikraft_linux_musl),
 
     ("riscv32i-unknown-none-elf", riscv32i_unknown_none_elf),
