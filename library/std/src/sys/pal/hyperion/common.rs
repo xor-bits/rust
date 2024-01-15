@@ -1,4 +1,8 @@
+use hyperion_syscall::err::Error;
+
 use crate::io as std_io;
+
+use super::io::sys_err_kind;
 
 pub mod memchr {
     pub use core::slice::memchr::{memchr, memrchr};
@@ -28,12 +32,11 @@ pub fn is_interrupted(_code: i32) -> bool {
 }
 
 pub fn decode_error_kind(_code: i32) -> crate::io::ErrorKind {
-    crate::io::ErrorKind::Uncategorized
+    sys_err_kind(Error(_code as _))
 }
 
 pub fn abort_internal() -> ! {
-    println!("abort_internal");
-    core::intrinsics::abort();
+    hyperion_syscall::exit(-1);
 }
 
 pub fn hashmap_random_keys() -> (u64, u64) {

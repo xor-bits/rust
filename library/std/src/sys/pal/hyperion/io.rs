@@ -53,11 +53,15 @@ pub fn is_terminal<T>(_: &T) -> bool {
     false
 }
 
-pub fn map_sys_err(err: Error) -> io::Error {
+pub(super) fn to_sys_err(err: i32) -> Error {
+    Error(usize::try_from(err).unwrap_or(usize::MAX))
+}
+
+pub(super) fn map_sys_err(err: Error) -> io::Error {
     io::Error::from_raw_os_error(err.0 as i32)
 }
 
-pub fn sys_err_kind(err: Error) -> io::ErrorKind {
+pub(super) fn sys_err_kind(err: Error) -> io::ErrorKind {
     match err {
         Error::ALREADY_EXISTS => io::ErrorKind::AlreadyExists,
         Error::BAD_FILE_DESCRIPTOR => io::ErrorKind::NotFound,

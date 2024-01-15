@@ -7,7 +7,7 @@ use crate::path::Path;
 use crate::sys::fs::File;
 use crate::sys::pipe::AnonPipe;
 use crate::sys::unsupported;
-use crate::sys_common::process::{CommandEnv, CommandEnvs};
+use crate::sys_common::{process::{CommandEnv, CommandEnvs}, FromInner};
 
 pub use crate::ffi::OsString as EnvKey;
 
@@ -121,7 +121,7 @@ impl fmt::Debug for Command {
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Default)]
 #[non_exhaustive]
-pub struct ExitStatus();
+pub struct ExitStatus(i64);
 
 impl ExitStatus {
     pub fn exit_ok(&self) -> Result<(), ExitStatusError> {
@@ -176,11 +176,11 @@ impl ExitStatusError {
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub struct ExitCode(bool);
+pub struct ExitCode(i64);
 
 impl ExitCode {
-    pub const SUCCESS: ExitCode = ExitCode(false);
-    pub const FAILURE: ExitCode = ExitCode(true);
+    pub const SUCCESS: ExitCode = ExitCode(0);
+    pub const FAILURE: ExitCode = ExitCode(1);
 
     pub fn as_i32(&self) -> i32 {
         self.0 as i32
@@ -189,10 +189,23 @@ impl ExitCode {
 
 impl From<u8> for ExitCode {
     fn from(code: u8) -> Self {
-        match code {
-            0 => Self::SUCCESS,
-            1..=255 => Self::FAILURE,
-        }
+        Self(code as _)
+    }
+}
+
+impl From<i64> for ExitCode {
+    fn from(code: i64) -> Self {
+        Self(code as _)
+    }
+}
+
+pub trait ExitCodeExt {
+    fn from_raw(raw: i64) -> Self;
+}
+
+impl ExitCodeExt for crate::process::ExitCode {
+    fn from_raw(raw: i64) -> Self {
+        crate::process::ExitCode::from_inner(From::from(raw))
     }
 }
 

@@ -1,3 +1,6 @@
+use hyperion_syscall::fs::{FileDesc, FileOpenFlags};
+use hyperion_syscall::open;
+
 use crate::ffi::OsString;
 use crate::fmt;
 use crate::hash::{Hash, Hasher};
@@ -6,7 +9,9 @@ use crate::path::{Path, PathBuf};
 use crate::sys::time::SystemTime;
 use crate::sys::unsupported;
 
-pub struct File(!);
+use super::io::map_sys_err;
+
+pub struct File(FileDesc);
 
 pub struct FileAttr(!);
 
@@ -15,7 +20,9 @@ pub struct ReadDir(!);
 pub struct DirEntry(!);
 
 #[derive(Clone, Debug)]
-pub struct OpenOptions {}
+pub struct OpenOptions {
+    flags: FileOpenFlags,
+}
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct FileTimes {}
@@ -170,84 +177,128 @@ impl DirEntry {
 
 impl OpenOptions {
     pub fn new() -> OpenOptions {
-        OpenOptions {}
+        OpenOptions { flags: FileOpenFlags::empty() }
     }
 
-    pub fn read(&mut self, _read: bool) {}
-    pub fn write(&mut self, _write: bool) {}
-    pub fn append(&mut self, _append: bool) {}
-    pub fn truncate(&mut self, _truncate: bool) {}
-    pub fn create(&mut self, _create: bool) {}
-    pub fn create_new(&mut self, _create_new: bool) {}
+    pub fn read(&mut self, read: bool) {
+        self.flags.set(FileOpenFlags::READ, read);
+    }
+
+    pub fn write(&mut self, write: bool) {
+        self.flags.set(FileOpenFlags::WRITE, write);
+    }
+
+    pub fn append(&mut self, append: bool) {
+        self.flags.set(FileOpenFlags::APPEND, append);
+    }
+
+    pub fn truncate(&mut self, truncate: bool) {
+        self.flags.set(FileOpenFlags::TRUNC, truncate);
+    }
+
+    pub fn create(&mut self, create: bool) {
+        self.flags.set(FileOpenFlags::CREATE, create);
+    }
+
+    pub fn create_new(&mut self, create_new: bool) {
+        self.flags.set(FileOpenFlags::CREATE_NEW, create_new);
+    }
 }
 
 impl File {
-    pub fn open(_path: &Path, _opts: &OpenOptions) -> io::Result<File> {
-        unsupported()
+    pub fn open(path: &Path, opts: &OpenOptions) -> io::Result<File> {
+        if opts.flags.intersection(FileOpenFlags::READ_WRITE).is_empty() {
+            return Err(io::const_io_error!(
+                io::ErrorKind::InvalidInput,
+                "the path should be UTF-8"
+            ));
+        }
+
+        let path = path.canonicalize()?;
+        let Some(path) = path.to_str() else {
+            return Err(io::const_io_error!(
+                io::ErrorKind::InvalidFilename,
+                "the path should be UTF-8"
+            ));
+        };
+
+        open(path, opts.flags, 0).map(File).map_err(map_sys_err)
     }
 
     pub fn file_attr(&self) -> io::Result<FileAttr> {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "file_attr unsupported"))
     }
 
     pub fn fsync(&self) -> io::Result<()> {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "fsync unsupported"))
     }
 
     pub fn datasync(&self) -> io::Result<()> {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "datasync unsupported"))
     }
 
     pub fn truncate(&self, _size: u64) -> io::Result<()> {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "truncate unsupported"))
     }
 
-    pub fn read(&self, _buf: &mut [u8]) -> io::Result<usize> {
-        self.0
+    pub fn read(&self, buf: &mut [u8]) -> io::Result<usize> {
+        hyperion_syscall::read(self.0, buf).map_err(map_sys_err)
     }
 
     pub fn read_vectored(&self, _bufs: &mut [IoSliceMut<'_>]) -> io::Result<usize> {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "read_vectored unsupported"))
     }
 
     pub fn is_read_vectored(&self) -> bool {
-        self.0
+        false
     }
 
-    pub fn read_buf(&self, _cursor: BorrowedCursor<'_>) -> io::Result<()> {
-        self.0
+    pub fn read_buf(&self, mut cursor: BorrowedCursor<'_>) -> io::Result<()> {
+        let read =
+            hyperion_syscall::read_uninit(self.0, cursor.uninit_mut()).map_err(map_sys_err)?;
+        unsafe { cursor.advance(read) };
+        Ok(())
     }
 
-    pub fn write(&self, _buf: &[u8]) -> io::Result<usize> {
-        self.0
+    pub fn write(&self, buf: &[u8]) -> io::Result<usize> {
+        hyperion_syscall::write(self.0, buf).map_err(map_sys_err)
     }
 
     pub fn write_vectored(&self, _bufs: &[IoSlice<'_>]) -> io::Result<usize> {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "write_vectored unsupported"))
     }
 
     pub fn is_write_vectored(&self) -> bool {
-        self.0
+        false
     }
 
     pub fn flush(&self) -> io::Result<()> {
-        self.0
+        Ok(())
     }
 
-    pub fn seek(&self, _pos: SeekFrom) -> io::Result<u64> {
-        self.0
+    pub fn seek(&self, pos: SeekFrom) -> io::Result<u64> {
+        let (offs, origin) = match pos {
+            SeekFrom::Start(offs) => (offs as _, hyperion_syscall::fs::Seek::SET),
+            SeekFrom::End(offs) => (offs as _, hyperion_syscall::fs::Seek::END),
+            SeekFrom::Current(offs) => (offs as _, hyperion_syscall::fs::Seek::CUR),
+        };
+        hyperion_syscall::seek(self.0, offs, origin.0).map_err(map_sys_err)?;
+        let mut meta = hyperion_syscall::fs::Metadata::zeroed();
+        hyperion_syscall::metadata(self.0, &mut meta).map_err(map_sys_err)?;
+        Ok(meta.position as _)
     }
 
     pub fn duplicate(&self) -> io::Result<File> {
-        self.0
+        // hyperion_syscall::dup(self.0, )
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "duplicate unsupported"))
     }
 
     pub fn set_permissions(&self, _perm: FilePermissions) -> io::Result<()> {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "set_permissions unsupported"))
     }
 
     pub fn set_times(&self, _times: FileTimes) -> io::Result<()> {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "set_times unsupported"))
     }
 }
 
@@ -262,8 +313,8 @@ impl DirBuilder {
 }
 
 impl fmt::Debug for File {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("File").field(&self.0).finish()
     }
 }
 
@@ -315,8 +366,8 @@ pub fn lstat(_p: &Path) -> io::Result<FileAttr> {
     unsupported()
 }
 
-pub fn canonicalize(_p: &Path) -> io::Result<PathBuf> {
-    unsupported()
+pub fn canonicalize(p: &Path) -> io::Result<PathBuf> {
+    if p.has_root() { Ok(p.into()) } else { Ok(Path::new("/").join(p)) }
 }
 
 pub fn copy(_from: &Path, _to: &Path) -> io::Result<u64> {

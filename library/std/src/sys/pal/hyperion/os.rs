@@ -1,3 +1,4 @@
+use super::io::to_sys_err;
 use super::unsupported;
 use crate::error::Error as StdError;
 use crate::ffi::{OsStr, OsString};
@@ -6,12 +7,14 @@ use crate::io;
 use crate::marker::PhantomData;
 use crate::path::{self, PathBuf};
 
+//
+
 pub fn errno() -> i32 {
-    0
+    panic!("errno not supported (it sucks)");
 }
 
-pub fn error_string(_errno: i32) -> String {
-    "operation successful".to_string()
+pub fn error_string(errno: i32) -> String {
+    to_sys_err(errno).as_str().to_string()
 }
 
 pub fn getcwd() -> io::Result<PathBuf> {

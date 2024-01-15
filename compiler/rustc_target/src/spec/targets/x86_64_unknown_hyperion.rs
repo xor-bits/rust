@@ -9,7 +9,7 @@ pub fn target() -> Target {
             .into(),
         options: TargetOptions {
             cpu: "x86-64".into(),
-            features: "-mmx,+rdrnd,+rdseed".into(),
+            features: "+rdrnd,+rdseed".into(),
             max_atomic_width: Some(64),
             stack_probes: StackProbeType::Inline,
             ..base::hyperion::opts()

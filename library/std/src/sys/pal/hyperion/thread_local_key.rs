@@ -9,9 +9,9 @@ pub type Key = usize;
 
 #[inline]
 pub unsafe fn create(_dtor: Option<unsafe extern "C" fn(*mut u8)>) -> Key {
-    hyperion_syscall::write(hyperion_syscall::fs::FileDesc(1), b"TLS create\n");
+    // TODO: this is unsafe with multiple threads
 
-    let val = Box::new(ptr::null_mut());
+    let val = Box::new(ptr::null_mut::<*mut u8>());
     let key = Box::into_raw(val);
 
     key as usize
@@ -21,26 +21,24 @@ pub unsafe fn create(_dtor: Option<unsafe extern "C" fn(*mut u8)>) -> Key {
 
 #[inline]
 pub unsafe fn set(_key: Key, _value: *mut u8) {
-    hyperion_syscall::write(hyperion_syscall::fs::FileDesc(1), b"TLS set\n");
-
-    let ptr = _key as *mut *mut u8;
+    let ptr: *mut *mut u8 = crate::ptr::from_exposed_addr_mut(_key);
     unsafe {
         *ptr = _value;
     }
+
     // panic!("should not be used on this target");
 }
 
 #[inline]
 pub unsafe fn get(_key: Key) -> *mut u8 {
-    hyperion_syscall::write(hyperion_syscall::fs::FileDesc(1), b"TLS get\n");
-
-    let ptr = _key as *mut *mut u8;
+    let ptr: *mut *mut u8 = crate::ptr::from_exposed_addr_mut(_key);
     unsafe { *ptr }
+
     // panic!("should not be used on this target");
 }
 
 #[inline]
 pub unsafe fn destroy(_key: Key) {
-    hyperion_syscall::write(hyperion_syscall::fs::FileDesc(1), b"TLS destroy\n");
+
     // panic!("should not be used on this target");
 }
