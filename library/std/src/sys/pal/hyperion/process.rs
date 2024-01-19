@@ -7,7 +7,10 @@ use crate::path::Path;
 use crate::sys::fs::File;
 use crate::sys::pipe::AnonPipe;
 use crate::sys::unsupported;
-use crate::sys_common::{process::{CommandEnv, CommandEnvs}, FromInner};
+use crate::sys_common::{
+    process::{CommandEnv, CommandEnvs},
+    FromInner,
+};
 
 pub use crate::ffi::OsString as EnvKey;
 

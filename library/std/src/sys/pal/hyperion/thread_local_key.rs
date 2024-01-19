@@ -9,7 +9,7 @@ pub type Key = usize;
 
 #[inline]
 pub unsafe fn create(_dtor: Option<unsafe extern "C" fn(*mut u8)>) -> Key {
-    // TODO: this is unsafe with multiple threads
+    // FIXME: this is unsafe with multiple threads
 
     let val = Box::new(ptr::null_mut::<*mut u8>());
     let key = Box::into_raw(val);

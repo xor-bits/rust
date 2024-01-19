@@ -1,8 +1,11 @@
-use crate::cell::Cell;
+use hyperion_syscall::{futex_wait, futex_wake};
+
+use crate::sync::atomic::{AtomicUsize, Ordering};
+
+//
 
 pub struct RwLock {
-    // This platform has no threads, so we can use a Cell here.
-    mode: Cell<isize>,
+    futex: AtomicUsize,
 }
 
 unsafe impl Send for RwLock {}
@@ -12,54 +15,95 @@ impl RwLock {
     #[inline]
     #[rustc_const_stable(feature = "const_locks", since = "1.63.0")]
     pub const fn new() -> RwLock {
-        RwLock { mode: Cell::new(0) }
+        RwLock { futex: AtomicUsize::new(0) }
     }
 
     #[inline]
     pub fn read(&self) {
-        let m = self.mode.get();
-        if m >= 0 {
-            self.mode.set(m + 1);
-        } else {
-            rtabort!("rwlock locked for writing");
+        loop {
+            let current = self.futex.load(Ordering::Acquire);
+
+            if current == WRITE_LOCKED || current == WRITE_LOCKED - 1 {
+                // write locked or too many readers
+                futex_wait(&self.futex, current);
+                continue;
+            }
+
+            if self
+                .futex
+                .compare_exchange(current, current + 1, Ordering::Acquire, Ordering::Relaxed)
+                .is_ok()
+            {
+                return;
+            }
         }
     }
 
     #[inline]
     pub fn try_read(&self) -> bool {
-        let m = self.mode.get();
-        if m >= 0 {
-            self.mode.set(m + 1);
-            true
-        } else {
-            false
+        let current = self.futex.load(Ordering::Acquire);
+
+        if current == WRITE_LOCKED || current == WRITE_LOCKED - 1 {
+            return false;
         }
+
+        self.futex
+            .compare_exchange(current, current + 1, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
     }
 
     #[inline]
     pub fn write(&self) {
-        if self.mode.replace(-1) != 0 {
-            rtabort!("rwlock locked for reading")
+        loop {
+            let current = self.futex.load(Ordering::Acquire);
+
+            if current != UNLOCKED {
+                futex_wait(&self.futex, current);
+                continue;
+            }
+
+            if self
+                .futex
+                .compare_exchange(UNLOCKED, WRITE_LOCKED, Ordering::Acquire, Ordering::Relaxed)
+                .is_ok()
+            {
+                return;
+            }
         }
     }
 
     #[inline]
     pub fn try_write(&self) -> bool {
-        if self.mode.get() == 0 {
-            self.mode.set(-1);
-            true
-        } else {
-            false
+        let current = self.futex.load(Ordering::Acquire);
+
+        if current != UNLOCKED {
+            return false;
         }
+
+        self.futex
+            .compare_exchange(UNLOCKED, WRITE_LOCKED, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
     }
 
     #[inline]
     pub unsafe fn read_unlock(&self) {
-        self.mode.set(self.mode.get() - 1);
+        let old = self.futex.fetch_sub(1, Ordering::Release);
+        assert_ne!(old, WRITE_LOCKED);
+        if old == 1 {
+            // wake up a writer if the reader lock was completely unlocked
+            futex_wake(&self.futex, 1);
+        }
     }
 
     #[inline]
     pub unsafe fn write_unlock(&self) {
-        assert_eq!(self.mode.replace(0), -1);
+        let old = self.futex.swap(UNLOCKED, Ordering::Release);
+        assert_eq!(old, WRITE_LOCKED);
     }
 }
+
+//
+
+const UNLOCKED: usize = 0;
+// const READ_LOCKED: usize = 1;
+const WRITE_LOCKED: usize = usize::MAX;

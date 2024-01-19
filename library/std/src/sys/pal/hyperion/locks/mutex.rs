@@ -1,32 +1,52 @@
-use crate::cell::Cell;
+use hyperion_syscall::{futex_wait, futex_wake};
+
+use crate::sync::atomic::{AtomicUsize, Ordering};
+
+//
 
 pub struct Mutex {
-    // This platform has no threads, so we can use a Cell here.
-    locked: Cell<bool>,
+    futex: AtomicUsize,
 }
 
 unsafe impl Send for Mutex {}
-unsafe impl Sync for Mutex {} // no threads on this platform
+unsafe impl Sync for Mutex {}
 
 impl Mutex {
     #[inline]
     #[rustc_const_stable(feature = "const_locks", since = "1.63.0")]
     pub const fn new() -> Mutex {
-        Mutex { locked: Cell::new(false) }
+        Mutex { futex: AtomicUsize::new(UNLOCKED) }
     }
 
     #[inline]
     pub fn lock(&self) {
-        assert_eq!(self.locked.replace(true), false, "cannot recursively acquire mutex");
+        while self
+            .futex
+            .compare_exchange(UNLOCKED, LOCKED, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
+            futex_wait(&self.futex, LOCKED);
+        }
     }
 
     #[inline]
     pub unsafe fn unlock(&self) {
-        self.locked.set(false);
+        // unlock the mutex
+        self.futex.store(UNLOCKED, Ordering::Release);
+
+        // and THEN wake up waiting threads
+        futex_wake(&self.futex, 1);
     }
 
     #[inline]
     pub fn try_lock(&self) -> bool {
-        self.locked.replace(true) == false
+        self.futex
+            .compare_exchange_weak(UNLOCKED, LOCKED, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
     }
 }
+
+//
+
+const UNLOCKED: usize = 0;
+const LOCKED: usize = 1;
