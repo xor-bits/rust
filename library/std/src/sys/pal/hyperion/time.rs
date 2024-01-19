@@ -1,4 +1,8 @@
+use hyperion_syscall::timestamp;
+
 use crate::time::Duration;
+
+//
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Instant(Duration);
@@ -10,7 +14,9 @@ pub const UNIX_EPOCH: SystemTime = SystemTime(Duration::from_secs(0));
 
 impl Instant {
     pub fn now() -> Instant {
-        panic!("time not implemented on this platform")
+        let now = timestamp().unwrap();
+        Instant(Duration::from_nanos(now.try_into().unwrap()))
+        // panic!("time not implemented on this platform")
     }
 
     pub fn checked_sub_instant(&self, other: &Instant) -> Option<Duration> {
