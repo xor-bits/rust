@@ -1,8 +1,9 @@
 use hyperion_syscall::{err as sys, fs::FileDesc, read, write};
 
-use crate::io;
-
-use super::io::to_sys_err;
+use crate::{
+    io,
+    os::hyperion::{map_sys_err, to_sys_err},
+};
 
 //
 
@@ -20,7 +21,7 @@ impl Stdin {
 
 impl io::Read for Stdin {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        read(FileDesc(0), buf).map_err(super::io::map_sys_err)
+        read(FileDesc(0), buf).map_err(map_sys_err)
     }
 }
 
@@ -32,7 +33,7 @@ impl Stdout {
 
 impl io::Write for Stdout {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        write(FileDesc(1), buf).map_err(super::io::map_sys_err)
+        write(FileDesc(1), buf).map_err(map_sys_err)
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -48,7 +49,7 @@ impl Stderr {
 
 impl io::Write for Stderr {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        write(FileDesc(2), buf).map_err(super::io::map_sys_err)
+        write(FileDesc(2), buf).map_err(map_sys_err)
     }
 
     fn flush(&mut self) -> io::Result<()> {

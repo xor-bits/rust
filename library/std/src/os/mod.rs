@@ -121,6 +121,8 @@ pub mod hermit;
 pub mod horizon;
 #[cfg(target_os = "hurd")]
 pub mod hurd;
+#[cfg(target_os = "hyperion")]
+pub mod hyperion;
 #[cfg(target_os = "illumos")]
 pub mod illumos;
 #[cfg(target_os = "ios")]

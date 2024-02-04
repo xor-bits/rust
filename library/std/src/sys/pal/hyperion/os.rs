@@ -1,10 +1,10 @@
-use super::io::to_sys_err;
 use super::unsupported;
 use crate::error::Error as StdError;
 use crate::ffi::{OsStr, OsString};
 use crate::fmt;
 use crate::io;
 use crate::marker::PhantomData;
+use crate::os::hyperion::to_sys_err;
 use crate::path::{self, PathBuf};
 
 //

@@ -48,7 +48,7 @@ impl Condvar {
         // Wait, but only if there hasn't been any
         // notification since we unlocked the mutex.
         // let r = ..
-        futex_wait(&self.futex, futex_value); // TODO: timeout
+        futex_wait(&self.futex, futex_value); // FIXME: timeout
 
         _ = timeout;
         let r = false;

@@ -1,8 +1,8 @@
 use hyperion_syscall::err::Error;
 
-use crate::io as std_io;
+use crate::{io as std_io, os::hyperion::sys_err_kind};
 
-use super::io::sys_err_kind;
+//
 
 pub mod memchr {
     pub use core::slice::memchr::{memchr, memrchr};

@@ -1854,7 +1854,7 @@ dependencies = [
 
 [[package]]
 name = "hyperion-syscall"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bitflags 2.4.1",
  "compiler_builtins",

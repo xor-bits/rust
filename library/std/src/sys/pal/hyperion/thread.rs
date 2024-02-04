@@ -1,11 +1,14 @@
 use hyperion_syscall::{done, nanosleep, rename, spawn, yield_now};
 
 use super::unsupported;
+use crate::boxed::Box;
 use crate::ffi::CStr;
 use crate::io;
 use crate::num::NonZeroUsize;
 use crate::ptr;
 use crate::time::Duration;
+
+//
 
 pub struct Thread();
 
@@ -14,14 +17,15 @@ pub const DEFAULT_MIN_STACK_SIZE: usize = 4096;
 impl Thread {
     // unsafe: see thread::Builder::spawn_unchecked for safety requirements
     pub unsafe fn new(_stack: usize, p: Box<dyn FnOnce()>) -> io::Result<Thread> {
-        let p = Box::into_raw(Box::new(p));
+        let p: *mut Box<dyn FnOnce()> = Box::into_raw(Box::new(p));
         spawn(_thread_entry, p.expose_addr());
 
         extern "C" fn _thread_entry(_stack_ptr: usize, arg: usize) -> ! {
-            let main = unsafe {
-                Box::from_raw(ptr::from_exposed_addr::<Box<dyn FnOnce()>>(arg).cast_mut())
-            };
+            let p: *mut Box<dyn FnOnce()> = ptr::from_exposed_addr_mut(arg);
+            let main: Box<dyn FnOnce()> = *unsafe { Box::from_raw(p) };
+
             main();
+
             done(0);
         }
 

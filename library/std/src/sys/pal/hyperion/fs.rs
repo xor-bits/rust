@@ -1,19 +1,22 @@
-use hyperion_syscall::fs::{FileDesc, FileOpenFlags};
-use hyperion_syscall::open;
+use hyperion_syscall::fs::{FileDesc, FileOpenFlags, Metadata};
+use hyperion_syscall::{metadata, open};
 
 use crate::ffi::OsString;
 use crate::fmt;
-use crate::hash::{Hash, Hasher};
+use crate::hash::Hash;
 use crate::io::{self, BorrowedCursor, IoSlice, IoSliceMut, SeekFrom};
+use crate::os::hyperion::map_sys_err;
 use crate::path::{Path, PathBuf};
 use crate::sys::time::SystemTime;
 use crate::sys::unsupported;
+use crate::sys_common::AsInner;
 
-use super::io::map_sys_err;
+//
 
 pub struct File(FileDesc);
 
-pub struct FileAttr(!);
+#[derive(Copy, Clone, Debug)]
+pub struct FileAttr(Metadata);
 
 pub struct ReadDir(!);
 
@@ -29,40 +32,40 @@ pub struct FileTimes {}
 
 pub struct FilePermissions(!);
 
-pub struct FileType(!);
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum FileType {
+    File,
+    Dir,
+    Symlink,
+}
 
 #[derive(Debug)]
 pub struct DirBuilder {}
 
 impl FileAttr {
     pub fn size(&self) -> u64 {
-        self.0
+        self.0.len as _
     }
 
+    #[track_caller]
     pub fn perm(&self) -> FilePermissions {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "perm unsupported")).unwrap()
     }
 
     pub fn file_type(&self) -> FileType {
-        self.0
+        FileType::File
     }
 
     pub fn modified(&self) -> io::Result<SystemTime> {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "modified unsupported")).unwrap()
     }
 
     pub fn accessed(&self) -> io::Result<SystemTime> {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "accessed unsupported")).unwrap()
     }
 
     pub fn created(&self) -> io::Result<SystemTime> {
-        self.0
-    }
-}
-
-impl Clone for FileAttr {
-    fn clone(&self) -> FileAttr {
-        self.0
+        Err(io::const_io_error!(io::ErrorKind::Unsupported, "created unsupported")).unwrap()
     }
 }
 
@@ -103,43 +106,15 @@ impl FileTimes {
 
 impl FileType {
     pub fn is_dir(&self) -> bool {
-        self.0
+        matches!(self, Self::Dir)
     }
 
     pub fn is_file(&self) -> bool {
-        self.0
+        matches!(self, Self::File)
     }
 
     pub fn is_symlink(&self) -> bool {
-        self.0
-    }
-}
-
-impl Clone for FileType {
-    fn clone(&self) -> FileType {
-        self.0
-    }
-}
-
-impl Copy for FileType {}
-
-impl PartialEq for FileType {
-    fn eq(&self, _other: &FileType) -> bool {
-        self.0
-    }
-}
-
-impl Eq for FileType {}
-
-impl Hash for FileType {
-    fn hash<H: Hasher>(&self, _h: &mut H) {
-        self.0
-    }
-}
-
-impl fmt::Debug for FileType {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0
+        matches!(self, Self::Symlink)
     }
 }
 
@@ -226,7 +201,9 @@ impl File {
     }
 
     pub fn file_attr(&self) -> io::Result<FileAttr> {
-        Err(io::const_io_error!(io::ErrorKind::Unsupported, "file_attr unsupported"))
+        let mut meta = Metadata::zeroed();
+        metadata(self.0, &mut meta).map_err(map_sys_err)?;
+        Ok(FileAttr(meta))
     }
 
     pub fn fsync(&self) -> io::Result<()> {
@@ -299,6 +276,12 @@ impl File {
 
     pub fn set_times(&self, _times: FileTimes) -> io::Result<()> {
         Err(io::const_io_error!(io::ErrorKind::Unsupported, "set_times unsupported"))
+    }
+}
+
+impl AsInner<FileDesc> for File {
+    fn as_inner(&self) -> &FileDesc {
+        &self.0
     }
 }
 
