@@ -1,6 +1,7 @@
 use crate::{
     io::{Read, Write},
     mem::forget,
+    sync::Arc,
 };
 
 use hyperion_syscall::{
@@ -87,6 +88,24 @@ impl LocalStream {
     pub fn close(self) -> io::Result<()> {
         close(self.leak_fd()).map_err(map_sys_err)?;
         Ok(())
+    }
+}
+
+#[stable(feature = "rust1", since = "1.0.0")]
+impl Read for Arc<LocalStream> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        (&self.fd).read(buf)
+    }
+}
+
+#[stable(feature = "rust1", since = "1.0.0")]
+impl Write for Arc<LocalStream> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        (&self.fd).write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        (&self.fd).flush()
     }
 }
 
