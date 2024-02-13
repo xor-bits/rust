@@ -180,6 +180,14 @@ impl OpenOptions {
     pub fn create_new(&mut self, create_new: bool) {
         self.flags.set(FileOpenFlags::CREATE_NEW, create_new);
     }
+
+    pub fn is_dir(&mut self, is_dir: bool) {
+        self.flags.set(FileOpenFlags::IS_DIR, is_dir);
+    }
+
+    pub fn create_dirs(&mut self, create_dirs: bool) {
+        self.flags.set(FileOpenFlags::CREATE_DIRS, create_dirs);
+    }
 }
 
 impl File {
@@ -292,8 +300,14 @@ impl DirBuilder {
         DirBuilder {}
     }
 
-    pub fn mkdir(&self, _p: &Path) -> io::Result<()> {
-        unsupported()
+    pub fn mkdir(&self, p: &Path) -> io::Result<()> {
+        let mut opts = OpenOptions::new();
+        opts.read(true);
+        opts.create(true);
+        // opts.create_dirs(true);
+        opts.is_dir(true);
+        File::open(p, &opts)?;
+        Ok(())
     }
 }
 
