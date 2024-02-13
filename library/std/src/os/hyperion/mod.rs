@@ -27,18 +27,15 @@ impl AsRawFd for fs::File {
 
 //
 
-#[stable(feature = "rust1", since = "1.0.0")]
-pub fn to_sys_err(err: i32) -> Error {
+pub(crate) fn to_sys_err(err: i32) -> Error {
     Error(usize::try_from(err).unwrap_or(usize::MAX))
 }
 
-#[stable(feature = "rust1", since = "1.0.0")]
-pub fn map_sys_err(err: Error) -> io::Error {
+pub(crate) fn map_sys_err(err: Error) -> io::Error {
     io::Error::from_raw_os_error(err.0 as i32)
 }
 
-#[stable(feature = "rust1", since = "1.0.0")]
-pub fn sys_err_kind(err: Error) -> io::ErrorKind {
+pub(crate) fn sys_err_kind(err: Error) -> io::ErrorKind {
     match err {
         Error::ALREADY_EXISTS => io::ErrorKind::AlreadyExists,
         Error::BAD_FILE_DESCRIPTOR => io::ErrorKind::NotFound,

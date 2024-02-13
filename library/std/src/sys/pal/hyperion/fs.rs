@@ -35,8 +35,8 @@ pub struct FilePermissions(!);
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum FileType {
     File,
-    Dir,
-    Symlink,
+    // Dir,
+    // Symlink,
 }
 
 #[derive(Debug)]
@@ -106,7 +106,8 @@ impl FileTimes {
 
 impl FileType {
     pub fn is_dir(&self) -> bool {
-        matches!(self, Self::Dir)
+        // matches!(self, Self::Dir)
+        false
     }
 
     pub fn is_file(&self) -> bool {
@@ -114,7 +115,8 @@ impl FileType {
     }
 
     pub fn is_symlink(&self) -> bool {
-        matches!(self, Self::Symlink)
+        // matches!(self, Self::Symlink)
+        false
     }
 }
 

@@ -1,11 +1,10 @@
 use crate::{
-    io::{BufRead, BufReader, Read, Write},
+    io::{Read, Write},
     mem::forget,
 };
 
 use hyperion_syscall::{
     accept, bind, close, connect,
-    fs::FileDesc,
     net::{Protocol, SocketDomain, SocketType},
     recv, send, socket,
 };
@@ -13,6 +12,11 @@ use hyperion_syscall::{
 use crate::io;
 
 use super::map_sys_err;
+
+//
+
+#[stable(feature = "rust1", since = "1.0.0")]
+pub use hyperion_syscall::fs::FileDesc;
 
 //
 
