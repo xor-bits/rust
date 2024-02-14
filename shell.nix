@@ -6,6 +6,7 @@ let
   # `config.toml.example`) from `1bd30ce2aac40c7698aa4a1b9520aa649ff2d1c5`
   config = pkgs.writeText "rustc-config" ''
     profile = "compiler" # you may want to choose a different profile, like `library` or `tools`
+    change-id = 102579
 
     [build]
     patch-binaries-for-nix = true
@@ -13,11 +14,15 @@ let
     # executing the debuginfo test suite.
     gdb = "${pkgs.gdb}/bin/gdb"
     python = "${pkgs.python3Full}/bin/python"
+    host = ["x86_64-unknown-linux-gnu"]
+    target = ["x86_64-unknown-linux-gnu", "x86_64-unknown-hyperion", "x86_64-unknown-none"]
+
 
     [rust]
     debug = true
     incremental = true
     deny-warnings = false
+    lld = true
 
     # Indicates whether some LLVM tools, like llvm-objdump, will be made available in the
     # sysroot.
