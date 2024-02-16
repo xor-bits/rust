@@ -1,3 +1,5 @@
+use std::fs::File;
+
 use hyperion_syscall::close;
 use hyperion_syscall::fs::FileDesc;
 use hyperion_syscall::fs::FileOpenFlags;
@@ -322,11 +324,18 @@ impl Process {
     }
 
     pub fn wait(&mut self) -> io::Result<ExitStatus> {
-        todo!()
+        // FIXME: this is the most hacky way to wait for a process to close
+        // hyperion doesn't have a wait syscall yet
+        let path = format!("/proc/{}/status", self.id());
+
+        // lmao, just spin on the /proc/<id> directory, this is pure evil
+        while File::open("/").is_ok() {
+            hyperion_syscall::yield_now()
+        }
     }
 
     pub fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {
-        todo!()
+        self.wait().map(Some)
     }
 }
 
