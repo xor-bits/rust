@@ -28,8 +28,6 @@ pub mod time;
 mod common;
 pub use common::*;
 
-mod libc;
-
 //
 
 #[no_mangle]

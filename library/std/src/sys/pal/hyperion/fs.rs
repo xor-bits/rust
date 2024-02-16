@@ -153,8 +153,12 @@ impl DirEntry {
 }
 
 impl OpenOptions {
-    pub fn new() -> OpenOptions {
+    pub fn new() -> Self {
         OpenOptions { flags: FileOpenFlags::empty() }
+    }
+
+    pub fn from_flags(flags: FileOpenFlags) -> Self {
+        Self { flags }
     }
 
     pub fn read(&mut self, read: bool) {
@@ -191,6 +195,10 @@ impl OpenOptions {
 }
 
 impl File {
+    pub fn from_inner(fd: FileDesc) -> Self {
+        Self(fd)
+    }
+
     pub fn open(path: &Path, opts: &OpenOptions) -> io::Result<File> {
         if opts.flags.intersection(FileOpenFlags::READ_WRITE).is_empty() {
             return Err(io::const_io_error!(

@@ -1,12 +1,23 @@
+use hyperion_syscall::close;
+use hyperion_syscall::fs::FileDesc;
+use hyperion_syscall::fs::FileOpenFlags;
+use hyperion_syscall::open;
+use hyperion_syscall::pipe;
+use hyperion_syscall::LaunchConfig;
+
 use crate::ffi::OsStr;
 use crate::fmt;
 use crate::io;
+use crate::io::BufReader;
 use crate::marker::PhantomData;
 use crate::num::NonZeroI32;
+use crate::os::hyperion::map_sys_err;
 use crate::path::Path;
 use crate::sys::fs::File;
+use crate::sys::fs::OpenOptions;
 use crate::sys::pipe::AnonPipe;
 use crate::sys::unsupported;
+use crate::sys_common::AsInner;
 use crate::sys_common::{
     process::{CommandEnv, CommandEnvs},
     FromInner,
@@ -20,6 +31,12 @@ pub use crate::ffi::OsString as EnvKey;
 
 pub struct Command {
     env: CommandEnv,
+
+    program: String,
+    stdin: Option<Stdio>,
+    stdout: Option<Stdio>,
+    stderr: Option<Stdio>,
+    args: Vec<String>,
 }
 
 // passed back to std::process with the pipes connected to the child, if any
@@ -32,6 +49,7 @@ pub struct StdioPipes {
 
 // FIXME: This should be a unit struct, so we can always construct it
 // The value here should be never used, since we cannot spawn processes.
+#[derive(Clone, Copy)]
 pub enum Stdio {
     Inherit,
     Null,
@@ -39,23 +57,41 @@ pub enum Stdio {
 }
 
 impl Command {
-    pub fn new(_program: &OsStr) -> Command {
-        Command { env: Default::default() }
+    pub fn new(program: &OsStr) -> Command {
+        Command {
+            env: Default::default(),
+
+            program: program.to_str().expect("program name should be UTF-8").to_string(),
+            stdin: None,
+            stdout: None,
+            stderr: None,
+            args: Vec::new(),
+        }
     }
 
-    pub fn arg(&mut self, _arg: &OsStr) {}
+    pub fn arg(&mut self, arg: &OsStr) {
+        self.args.push(arg.to_str().expect("cli args should be UTF-8").to_string());
+    }
 
     pub fn env_mut(&mut self) -> &mut CommandEnv {
         &mut self.env
     }
 
-    pub fn cwd(&mut self, _dir: &OsStr) {}
+    pub fn cwd(&mut self, _dir: &OsStr) {
+        panic!("hyperion doesn't have os enforced working directories");
+    }
 
-    pub fn stdin(&mut self, _stdin: Stdio) {}
+    pub fn stdin(&mut self, stdin: Stdio) {
+        self.stdin = Some(stdin);
+    }
 
-    pub fn stdout(&mut self, _stdout: Stdio) {}
+    pub fn stdout(&mut self, stdout: Stdio) {
+        self.stdout = Some(stdout);
+    }
 
-    pub fn stderr(&mut self, _stderr: Stdio) {}
+    pub fn stderr(&mut self, stderr: Stdio) {
+        self.stderr = Some(stderr);
+    }
 
     pub fn get_program(&self) -> &OsStr {
         panic!("unsupported")
@@ -75,10 +111,72 @@ impl Command {
 
     pub fn spawn(
         &mut self,
-        _default: Stdio,
+        default: Stdio,
         _needs_stdin: bool,
     ) -> io::Result<(Process, StdioPipes)> {
-        unsupported()
+        let stdin = self.stdin.unwrap_or(default);
+        let stdout = self.stdout.unwrap_or(default);
+        let stderr = self.stderr.unwrap_or(default);
+
+        struct LazyNull(Option<File>);
+
+        impl LazyNull {
+            fn get(&mut self) -> FileDesc {
+                *self
+                    .0
+                    .get_or_insert_with(|| {
+                        File::open(
+                            "/dev/null".as_ref(),
+                            &OpenOptions::from_flags(FileOpenFlags::READ_WRITE),
+                        )
+                        .unwrap()
+                    })
+                    .as_inner()
+            }
+        }
+
+        let mut null = LazyNull(None);
+
+        let mut pipes = StdioPipes { stdin: None, stdout: None, stderr: None };
+
+        let stdin = match stdin {
+            Stdio::Inherit => FileDesc(0),
+            Stdio::Null => null.get(),
+            Stdio::MakePipe => {
+                let [r, w] = pipe().unwrap();
+                pipes.stdin = Some(AnonPipe::from_fd(r));
+                w
+            }
+        };
+        let stdout = match stdout {
+            Stdio::Inherit => FileDesc(1),
+            Stdio::Null => null.get(),
+            Stdio::MakePipe => {
+                let [r, w] = pipe().unwrap();
+                pipes.stdout = Some(AnonPipe::from_fd(w));
+                r
+            }
+        };
+        let stderr = match stderr {
+            Stdio::Inherit => FileDesc(2),
+            Stdio::Null => null.get(),
+            Stdio::MakePipe => {
+                let [r, w] = pipe().unwrap();
+                pipes.stderr = Some(AnonPipe::from_fd(w));
+                r
+            }
+        };
+
+        let args: Vec<&str> = self.args.iter().map(|s| s.as_str()).collect();
+
+        let pid: usize = hyperion_syscall::system_with(
+            self.program.as_str(),
+            &args,
+            LaunchConfig { stdin, stdout, stderr },
+        )
+        .map_err(map_sys_err)?;
+
+        Ok((Process(pid), pipes))
     }
 
     pub fn output(&mut self) -> io::Result<(ExitStatus, Vec<u8>, Vec<u8>)> {
@@ -212,23 +310,23 @@ impl ExitCodeExt for crate::process::ExitCode {
     }
 }
 
-pub struct Process(!);
+pub struct Process(usize);
 
 impl Process {
     pub fn id(&self) -> u32 {
-        self.0
+        self.0 as u32
     }
 
     pub fn kill(&mut self) -> io::Result<()> {
-        self.0
+        todo!()
     }
 
     pub fn wait(&mut self) -> io::Result<ExitStatus> {
-        self.0
+        todo!()
     }
 
     pub fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {
-        self.0
+        todo!()
     }
 }
 

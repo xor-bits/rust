@@ -1,7 +1,7 @@
-use hyperion_syscall::{err as sys, fs::FileDesc, read, write};
+use hyperion_syscall::{err as sys, fs::FileDesc, read, read_uninit, write};
 
 use crate::{
-    io,
+    io::{self, BorrowedCursor},
     os::hyperion::{map_sys_err, to_sys_err},
 };
 
@@ -22,6 +22,14 @@ impl Stdin {
 impl io::Read for Stdin {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         read(FileDesc(0), buf).map_err(map_sys_err)
+    }
+
+    fn read_buf(&mut self, mut buf: BorrowedCursor<'_>) -> io::Result<()> {
+        let ret: usize = read_uninit(FileDesc(0), buf.uninit_mut()).map_err(map_sys_err)?;
+
+        // Safety: `ret` bytes were written to the initialized portion of the buffer
+        unsafe { buf.advance(ret) };
+        Ok(())
     }
 }
 

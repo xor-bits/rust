@@ -1,4 +1,4 @@
-use crate::spec::{base, StackProbeType, Target, TargetOptions};
+use crate::spec::{base, Target, TargetOptions};
 
 pub fn target() -> Target {
     Target {
@@ -11,7 +11,6 @@ pub fn target() -> Target {
             cpu: "x86-64".into(),
             features: "+rdrnd,+rdseed".into(),
             max_atomic_width: Some(64),
-            stack_probes: StackProbeType::Inline,
             ..base::hyperion::opts()
         },
     }

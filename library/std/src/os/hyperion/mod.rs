@@ -39,7 +39,7 @@ pub(crate) fn sys_err_kind(err: Error) -> io::ErrorKind {
     match err {
         Error::ALREADY_EXISTS => io::ErrorKind::AlreadyExists,
         Error::BAD_FILE_DESCRIPTOR => io::ErrorKind::NotFound,
-        Error::CLOSED => io::ErrorKind::NotFound,
+        Error::CLOSED => io::ErrorKind::UnexpectedEof,
         Error::CONNECTION_REFUSED => io::ErrorKind::ConnectionRefused,
         Error::FILESYSTEM_ERROR => io::ErrorKind::Uncategorized,
         Error::INTERRUPTED => io::ErrorKind::Interrupted,
