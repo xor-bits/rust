@@ -1,9 +1,6 @@
-use hyperion_syscall::{fs::FileDesc, read};
+use hyperion_syscall::fs::FileDesc;
 
-use crate::{
-    io::{self, BorrowedCursor, BufRead, BufReader, IoSlice, IoSliceMut},
-    os::hyperion::map_sys_err,
-};
+use crate::io::{self, BorrowedCursor, IoSlice, IoSliceMut};
 
 use super::fs::File;
 

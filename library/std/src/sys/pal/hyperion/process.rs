@@ -1,16 +1,11 @@
-use std::fs::File;
-
-use hyperion_syscall::close;
 use hyperion_syscall::fs::FileDesc;
 use hyperion_syscall::fs::FileOpenFlags;
-use hyperion_syscall::open;
 use hyperion_syscall::pipe;
 use hyperion_syscall::LaunchConfig;
 
 use crate::ffi::OsStr;
 use crate::fmt;
 use crate::io;
-use crate::io::BufReader;
 use crate::marker::PhantomData;
 use crate::num::NonZeroI32;
 use crate::os::hyperion::map_sys_err;
@@ -329,7 +324,7 @@ impl Process {
         let path = format!("/proc/{}/status", self.id());
 
         // lmao, just spin on the /proc/<id> directory, this is pure evil
-        while File::open("/").is_ok() {
+        while crate::fs::File::open(&path).is_ok() {
             hyperion_syscall::yield_now()
         }
 
