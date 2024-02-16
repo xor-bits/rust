@@ -1,5 +1,5 @@
 use hyperion_syscall::fs::{FileDesc, FileOpenFlags, Metadata};
-use hyperion_syscall::{metadata, open};
+use hyperion_syscall::{close, metadata, open};
 
 use crate::ffi::OsString;
 use crate::fmt;
@@ -294,6 +294,12 @@ impl File {
 
     pub fn set_times(&self, _times: FileTimes) -> io::Result<()> {
         Err(io::const_io_error!(io::ErrorKind::Unsupported, "set_times unsupported"))
+    }
+}
+
+impl Drop for File {
+    fn drop(&mut self) {
+        close(self.0).unwrap()
     }
 }
 

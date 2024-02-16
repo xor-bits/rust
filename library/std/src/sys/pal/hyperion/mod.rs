@@ -31,7 +31,7 @@ pub use common::*;
 //
 
 #[no_mangle]
-extern "sysv64" fn _start(_hyperion_cli_args_ptr: usize, _a2: usize) -> ! {
+extern "sysv64" fn _start(hyperion_cli_args_ptr: usize, _a2: usize) -> ! {
     // rustc generates the real `main` function, that fn
     // simply calls `lang_start` with the correct args
     extern "C" {
@@ -39,7 +39,7 @@ extern "sysv64" fn _start(_hyperion_cli_args_ptr: usize, _a2: usize) -> ! {
     }
 
     // init cli args from stack, move them to the heap
-    // unsafe { env::init_args(hyperion_cli_args_ptr) };
+    unsafe { args::init_args(hyperion_cli_args_ptr) };
 
     // call `lang_start`
     let exit_code = unsafe { main(0, ptr::null()) };
