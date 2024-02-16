@@ -332,6 +332,8 @@ impl Process {
         while File::open("/").is_ok() {
             hyperion_syscall::yield_now()
         }
+
+        Ok(ExitStatus(0))
     }
 
     pub fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {
