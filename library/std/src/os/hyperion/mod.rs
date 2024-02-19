@@ -2,7 +2,7 @@
 
 //
 
-use hyperion_syscall::err::Error;
+use hyperion_abi::sys::err::Error;
 
 use crate::{fs, io, sys_common::AsInner};
 

@@ -1,7 +1,7 @@
-use hyperion_syscall::fs::FileDesc;
-use hyperion_syscall::fs::FileOpenFlags;
-use hyperion_syscall::pipe;
-use hyperion_syscall::LaunchConfig;
+use hyperion_abi::sys::fs::FileDesc;
+use hyperion_abi::sys::fs::FileOpenFlags;
+use hyperion_abi::sys::pipe;
+use hyperion_abi::sys::LaunchConfig;
 
 use crate::ffi::OsStr;
 use crate::fmt;
@@ -166,7 +166,7 @@ impl Command {
 
         let args: Vec<&str> = self.args.iter().map(|s| s.as_str()).collect();
 
-        let pid: usize = hyperion_syscall::system_with(
+        let pid: usize = hyperion_abi::sys::system_with(
             self.program.as_str(),
             &args,
             LaunchConfig { stdin, stdout, stderr },
@@ -325,7 +325,7 @@ impl Process {
 
         // lmao, just spin on the /proc/<id> directory, this is pure evil
         while crate::fs::File::open(&path).is_ok() {
-            hyperion_syscall::yield_now()
+            hyperion_abi::sys::yield_now()
         }
 
         Ok(ExitStatus(0))

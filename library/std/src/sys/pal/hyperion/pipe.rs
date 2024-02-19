@@ -1,4 +1,4 @@
-use hyperion_syscall::fs::FileDesc;
+use hyperion_abi::sys::fs::FileDesc;
 
 use crate::io::{self, BorrowedCursor, IoSlice, IoSliceMut};
 

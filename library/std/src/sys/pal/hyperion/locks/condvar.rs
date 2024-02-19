@@ -1,4 +1,4 @@
-use hyperion_syscall::{futex_wait, futex_wake};
+use hyperion_abi::sys::{futex_wait, futex_wake};
 
 use crate::sys::locks::Mutex;
 use crate::time::Duration;

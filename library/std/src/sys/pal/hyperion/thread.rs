@@ -1,4 +1,4 @@
-use hyperion_syscall::{done, nanosleep, rename, spawn, yield_now};
+use hyperion_abi::sys::{done, nanosleep, rename, spawn, yield_now};
 
 use super::unsupported;
 use crate::boxed::Box;

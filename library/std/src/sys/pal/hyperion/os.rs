@@ -116,9 +116,9 @@ pub fn home_dir() -> Option<PathBuf> {
 }
 
 pub fn exit(code: i32) -> ! {
-    hyperion_syscall::exit(code as i64);
+    hyperion_abi::sys::exit(code as i64);
 }
 
 pub fn getpid() -> u32 {
-    hyperion_syscall::get_pid().try_into().expect("Rust expects PID to be within u32 range")
+    hyperion_abi::sys::get_pid().try_into().expect("Rust expects PID to be within u32 range")
 }

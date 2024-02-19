@@ -1,5 +1,5 @@
-use hyperion_syscall::fs::{FileDesc, FileOpenFlags, Metadata};
-use hyperion_syscall::{close, metadata, open};
+use hyperion_abi::sys::fs::{FileDesc, FileOpenFlags, Metadata};
+use hyperion_abi::sys::{close, metadata, open};
 
 use crate::ffi::OsString;
 use crate::fmt;
@@ -237,7 +237,7 @@ impl File {
     }
 
     pub fn read(&self, buf: &mut [u8]) -> io::Result<usize> {
-        hyperion_syscall::read(self.0, buf).map_err(map_sys_err)
+        hyperion_abi::sys::read(self.0, buf).map_err(map_sys_err)
     }
 
     pub fn read_vectored(&self, _bufs: &mut [IoSliceMut<'_>]) -> io::Result<usize> {
@@ -250,13 +250,13 @@ impl File {
 
     pub fn read_buf(&self, mut cursor: BorrowedCursor<'_>) -> io::Result<()> {
         let read =
-            hyperion_syscall::read_uninit(self.0, cursor.uninit_mut()).map_err(map_sys_err)?;
+            hyperion_abi::sys::read_uninit(self.0, cursor.uninit_mut()).map_err(map_sys_err)?;
         unsafe { cursor.advance(read) };
         Ok(())
     }
 
     pub fn write(&self, buf: &[u8]) -> io::Result<usize> {
-        hyperion_syscall::write(self.0, buf).map_err(map_sys_err)
+        hyperion_abi::sys::write(self.0, buf).map_err(map_sys_err)
     }
 
     pub fn write_vectored(&self, _bufs: &[IoSlice<'_>]) -> io::Result<usize> {
@@ -273,18 +273,18 @@ impl File {
 
     pub fn seek(&self, pos: SeekFrom) -> io::Result<u64> {
         let (offs, origin) = match pos {
-            SeekFrom::Start(offs) => (offs as _, hyperion_syscall::fs::Seek::SET),
-            SeekFrom::End(offs) => (offs as _, hyperion_syscall::fs::Seek::END),
-            SeekFrom::Current(offs) => (offs as _, hyperion_syscall::fs::Seek::CUR),
+            SeekFrom::Start(offs) => (offs as _, hyperion_abi::sys::fs::Seek::SET),
+            SeekFrom::End(offs) => (offs as _, hyperion_abi::sys::fs::Seek::END),
+            SeekFrom::Current(offs) => (offs as _, hyperion_abi::sys::fs::Seek::CUR),
         };
-        hyperion_syscall::seek(self.0, offs, origin.0).map_err(map_sys_err)?;
-        let mut meta = hyperion_syscall::fs::Metadata::zeroed();
-        hyperion_syscall::metadata(self.0, &mut meta).map_err(map_sys_err)?;
+        hyperion_abi::sys::seek(self.0, offs, origin.0).map_err(map_sys_err)?;
+        let mut meta = hyperion_abi::sys::fs::Metadata::zeroed();
+        hyperion_abi::sys::metadata(self.0, &mut meta).map_err(map_sys_err)?;
         Ok(meta.position as _)
     }
 
     pub fn duplicate(&self) -> io::Result<File> {
-        // hyperion_syscall::dup(self.0, )
+        // hyperion_abi::sys::dup(self.0, )
         Err(io::const_io_error!(io::ErrorKind::Unsupported, "duplicate unsupported"))
     }
 

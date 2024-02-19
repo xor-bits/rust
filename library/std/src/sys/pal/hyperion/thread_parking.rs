@@ -1,4 +1,4 @@
-use hyperion_syscall::{futex_wait, futex_wake};
+use hyperion_abi::sys::{futex_wait, futex_wake};
 
 use crate::pin::Pin;
 use crate::sync::atomic::{AtomicUsize, Ordering::*};
@@ -70,7 +70,7 @@ impl Parker {
     // require `Pin`, but other implementations do.
     pub unsafe fn park_timeout(self: Pin<&Self>, _timeout: Duration) {
         // FIXME: futex_wait with a timeout in hyperion
-        hyperion_syscall::yield_now();
+        hyperion_abi::sys::yield_now();
         /* // Change NOTIFIED=>EMPTY or EMPTY=>PARKED, and directly return in the
         // first case.
         if self.state.fetch_sub(1, Acquire) == NOTIFIED {

@@ -1,4 +1,4 @@
-use hyperion_syscall::err::Error;
+use hyperion_abi::sys::err::Error;
 
 use crate::{io as std_io, os::hyperion::sys_err_kind};
 
@@ -36,7 +36,7 @@ pub fn decode_error_kind(_code: i32) -> crate::io::ErrorKind {
 }
 
 pub fn abort_internal() -> ! {
-    hyperion_syscall::exit(-1);
+    hyperion_abi::sys::exit(-1);
 }
 
 pub fn hashmap_random_keys() -> (u64, u64) {

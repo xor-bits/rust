@@ -51,7 +51,7 @@ fortanix-sgx-abi = { version = "0.5.0", features = ['rustc-dep-of-std'], public 
 hermit-abi = { version = "0.3.2", features = ['rustc-dep-of-std'], public = true }
 
 [target.'cfg(target_os = "hyperion")'.dependencies]
-hyperion-syscall = { path = "../../../hyperion/crates/syscall", features = ['rustc-dep-of-std'] }
+hyperion-abi = { path = "../../../hyperion/userspace/hyperion-abi", features = ['rustc-dep-of-std'] }
 
 [target.'cfg(target_os = "wasi")'.dependencies]
 wasi = { version = "0.11.0", features = ['rustc-dep-of-std'], default-features = false }

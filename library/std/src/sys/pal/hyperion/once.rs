@@ -1,4 +1,4 @@
-use hyperion_syscall::futex_wait;
+use hyperion_abi::sys::futex_wait;
 
 use crate::cell::Cell;
 use crate::sync as public;

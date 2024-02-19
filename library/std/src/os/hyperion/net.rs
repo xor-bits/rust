@@ -4,7 +4,7 @@ use crate::{
     sync::Arc,
 };
 
-use hyperion_syscall::{
+use hyperion_abi::sys::{
     accept, bind, close, connect,
     net::{Protocol, SocketDomain, SocketType},
     recv, send, socket,
@@ -17,7 +17,7 @@ use super::map_sys_err;
 //
 
 #[stable(feature = "rust1", since = "1.0.0")]
-pub use hyperion_syscall::fs::FileDesc;
+pub use hyperion_abi::sys::fs::FileDesc;
 
 //
 

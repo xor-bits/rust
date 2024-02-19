@@ -1,4 +1,4 @@
-use hyperion_syscall::{err as sys, fs::FileDesc, read, read_uninit, write};
+use hyperion_abi::sys::{err as sys, fs::FileDesc, read, read_uninit, write};
 
 use crate::{
     io::{self, BorrowedCursor},
@@ -78,7 +78,7 @@ pub fn panic_output() -> Option<impl io::Write> {
 
     // impl io::Write for Log {
     //     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-    //         Ok(hyperion_syscall::write(hyperion_syscall::fs::FileDesc(1), buf).unwrap())
+    //         Ok(hyperion_abi::sys::write(hyperion_abi::sys::fs::FileDesc(1), buf).unwrap())
     //     }
 
     //     fn flush(&mut self) -> io::Result<()> {

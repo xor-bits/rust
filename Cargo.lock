@@ -1849,6 +1849,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyperion-abi"
+version = "0.3.0"
+dependencies = [
+ "compiler_builtins",
+ "hyperion-slab-alloc",
+ "hyperion-syscall",
+ "rustc-std-workspace-core",
+]
+
+[[package]]
+name = "hyperion-slab-alloc"
+version = "0.3.0"
+dependencies = [
+ "compiler_builtins",
+ "rustc-std-workspace-core",
+]
+
+[[package]]
 name = "hyperion-syscall"
 version = "0.3.0"
 dependencies = [
@@ -5194,7 +5212,7 @@ dependencies = [
  "fortanix-sgx-abi",
  "hashbrown",
  "hermit-abi",
- "hyperion-syscall",
+ "hyperion-abi",
  "libc",
  "miniz_oxide",
  "object",

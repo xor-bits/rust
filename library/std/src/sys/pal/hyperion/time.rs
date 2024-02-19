@@ -1,4 +1,4 @@
-use hyperion_syscall::timestamp;
+use hyperion_abi::sys::timestamp;
 
 use crate::time::Duration;
 

@@ -1,7 +1,27 @@
-use hyperion_syscall::{err::Result, palloc};
+use hyperion_abi::alloc::{PageAlloc, Pages, SlabAllocator};
+use hyperion_abi::sys::{palloc, pfree};
 
 use crate::alloc::{GlobalAlloc, Layout, System};
-use crate::ptr::{null_mut, NonNull};
+use crate::ptr::NonNull;
+
+//
+
+static SLAB: SlabAllocator<BaseAlloc> = SlabAllocator::new();
+
+//
+
+struct BaseAlloc;
+
+unsafe impl PageAlloc for BaseAlloc {
+    unsafe fn alloc(pages: usize) -> Pages {
+        let alloc = palloc(pages).unwrap().unwrap();
+        unsafe { Pages::new(alloc.as_ptr(), pages) }
+    }
+
+    unsafe fn dealloc(frames: Pages) {
+        pfree(NonNull::new(frames.as_ptr()).unwrap(), frames.len()).unwrap();
+    }
+}
 
 //
 
@@ -9,22 +29,11 @@ use crate::ptr::{null_mut, NonNull};
 unsafe impl GlobalAlloc for System {
     #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        match palloc(layout.size().div_ceil(0x1000)) {
-            Result::Ok(Some(ptr)) => ptr.as_ptr(),
-            _ => null_mut(),
-        }
-    }
-
-    #[inline]
-    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-        // it is always zeroed
-        unsafe { self.alloc(layout) }
+        unsafe { GlobalAlloc::alloc(&SLAB, layout) }
     }
 
     #[inline]
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        if let Some(ptr) = NonNull::new(ptr) {
-            _ = hyperion_syscall::pfree(ptr, layout.size().div_ceil(0x1000));
-        }
+        unsafe { GlobalAlloc::dealloc(&SLAB, ptr, layout) }
     }
 }
