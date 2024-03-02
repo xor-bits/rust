@@ -166,12 +166,18 @@ impl Command {
 
         let args: Vec<&str> = self.args.iter().map(|s| s.as_str()).collect();
 
-        let pid: usize = hyperion_abi::sys::system_with(
+        let result = hyperion_abi::sys::system_with(
             self.program.as_str(),
             &args,
             LaunchConfig { stdin, stdout, stderr },
-        )
-        .map_err(map_sys_err)?;
+        );
+
+        // close the other side of the pipe, the process keeps them open in the kernel
+        File::from_inner(stdin);
+        File::from_inner(stdout);
+        File::from_inner(stderr);
+
+        let pid: usize = result.map_err(map_sys_err)?;
 
         Ok((Process(pid), pipes))
     }
@@ -325,7 +331,8 @@ impl Process {
 
         // lmao, just spin on the /proc/<id> directory, this is pure evil
         while crate::fs::File::open(&path).is_ok() {
-            hyperion_abi::sys::yield_now()
+            hyperion_abi::sys::nanosleep(10_000_000)
+            // hyperion_abi::sys::yield_now()
         }
 
         Ok(ExitStatus(0))
