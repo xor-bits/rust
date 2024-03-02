@@ -67,7 +67,7 @@ pkgs.mkShell {
     cmake
     ninja
     openssl
-    pkgconfig
+    pkg-config
     python39
     git
     curl
