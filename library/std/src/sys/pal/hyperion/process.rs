@@ -172,10 +172,15 @@ impl Command {
             LaunchConfig { stdin, stdout, stderr },
         );
 
-        // close the other side of the pipe, the process keeps them open in the kernel
-        File::from_inner(stdin);
-        File::from_inner(stdout);
-        File::from_inner(stderr);
+        if pipes.stdin.is_some() {
+            File::from_inner(stdin);
+        }
+        if pipes.stdout.is_some() {
+            File::from_inner(stdout);
+        }
+        if pipes.stderr.is_some() {
+            File::from_inner(stderr);
+        }
 
         let pid: usize = result.map_err(map_sys_err)?;
 
